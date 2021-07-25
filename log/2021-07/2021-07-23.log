@@ -1,0 +1,163 @@
+2021-07-23 18:08:10 (MSK) - Log is cool
+2021-07-23 18:08:10 (MSK) - Log is not cool?
+2021-07-23 18:08:52 (MSK) - Log is cool
+2021-07-23 18:08:52 (MSK) - !!! ERROR: Log is not cool?
+2021-07-23 18:10:52 (MSK) - Log is cool
+2021-07-23 18:10:52 (MSK) - !!! ERROR !!! : Log is not cool?
+Log is cool
+Log is cool
+!!! ERROR !!! : Log is not cool?
+2021-07-23 20:06:23 (MSK) - Log is cool
+2021-07-23 20:06:23 (MSK) - !!! ERROR !!! : Log is not cool?
+2021-07-23 21:26:25 (MSK) - Default log
+2021-07-23 21:26:25 (MSK) - Beg log -> End log
+2021-07-23 21:26:25 (MSK) - !!! ERROR !!! : Error log
+2021-07-23 21:37:43 (MSK) - Categories product count crawling start:
+ -> 5 серия GT has 4
+
+ -> 5 серия другие has 94
+
+ -> 520 has 0
+
+ -> 523 has 0
+
+ -> 525 has 0
+
+ -> 528 has 1
+
+ -> 530 has 0
+
+ -> 535 has 0
+
+ -> 540 has 0
+
+ -> X5 has 160
+
+ -> X5M has 8
+
+ -> X6 has 72
+
+ -> X6M has 3
+
+ -> M5 has 6
+
+ -> 4 серия has 4
+
+ -> 430 has 0
+
+ -> M3 has 0
+
+ -> M4 has 3
+
+ -> C 180 has 0
+
+ -> C 200 has 0
+
+ -> C 250 has 0
+
+ -> C CLASS AMG has 4
+
+ -> C CLASS иное has 26
+
+ -> E 200 has 1
+
+ -> E 220 has 0
+
+ -> E 250 has 0
+
+ -> E 300 has 0
+
+ -> E 320 has 0
+
+ -> E 400 has 0
+
+ -> E CLASS has 0
+
+ -> E CLASS AMG has 4
+
+ -> E CLASS иное has 180
+
+ -> GLE has 131
+
+ -> GLE Coupe has 79
+
+ -> GLS has 67
+
+2021-07-23 21:38:29 (MSK) - Categories product count crawling ends with: 847 products
+2021-07-23 21:38:29 (MSK) - Writing IDs we have got from crawling: -> Done
+2021-07-23 21:41:31 (MSK) - Writing IDs we have got from crawling: -> Done
+2021-07-23 21:44:36 (MSK) - Writing IDs we have got from crawling: -> Done
+2021-07-23 21:52:14 (MSK) - Writing IDs we have got from crawling: -> Done
+2021-07-23 21:52:34 (MSK) - Categories product count crawling start:
+ -> 5 серия GT has 4
+
+ -> 5 серия другие has 94
+
+ -> 520 has 0
+
+ -> 523 has 0
+
+ -> 525 has 0
+
+ -> 528 has 1
+
+ -> 530 has 0
+
+ -> 535 has 0
+
+ -> 540 has 0
+
+ -> X5 has 160
+
+ -> X5M has 8
+
+ -> X6 has 72
+
+ -> X6M has 3
+
+ -> M5 has 6
+
+ -> 4 серия has 4
+
+ -> 430 has 0
+
+ -> M3 has 0
+
+ -> M4 has 3
+
+ -> C 180 has 0
+
+ -> C 200 has 0
+
+ -> C 250 has 0
+
+ -> C CLASS AMG has 4
+
+ -> C CLASS иное has 26
+
+ -> E 200 has 1
+
+ -> E 220 has 0
+
+ -> E 250 has 0
+
+ -> E 300 has 0
+
+ -> E 320 has 0
+
+ -> E 400 has 0
+
+ -> E CLASS has 0
+
+ -> E CLASS AMG has 4
+
+ -> E CLASS иное has 180
+
+ -> GLE has 131
+
+ -> GLE Coupe has 79
+
+ -> GLS has 67
+
+2021-07-23 21:53:21 (MSK) - Categories product count crawling ends with: 847 products
+2021-07-23 21:53:21 (MSK) - Writing IDs we have got from crawling: -> Done
