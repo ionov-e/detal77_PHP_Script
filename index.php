@@ -5,22 +5,21 @@
 //------------
 
 /*
- * // This the acc for real usage
- *
-const PHPSESSID = 'Cookie: PHPSESSID=rkicg4b2fofqnm01qqd5jp3d57';     //Random id works.. but see no reason to do so. For now
-const LOGININFO = 'login=bmwm&password=bmwm77';
-const CHECKOUTSUFFIX = '&dostavka_metod=1&mail=Bmw.mpack"%"40bk.ru&name_person="%"D5"%"E0"%"F0"%"E8"%"F2"%"EE"%"ED"%"EE"%"E2+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E9+"%"C8"%"E2"%"E0"%"ED"%"EE"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code="%"2B7910&tel_name=4287486&dos_ot=&dos_do=&adr_name="%"C7"%"E0"%"E1"%"E5"%"F0"%"F3+"%"E1"%"E5"%"E7+"%"EE"%"F2"%"EA"%"E0"%"E7"%"ED"%"EE+100"%"25&order_metod=1&send_to_order=ok&d=1&nav=done';
-const MAXBUYS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong*/
-
+// This the acc for real usage
+const PHPSESSID = 'rkicg4b2fofqnm01qqd5jp3d57';     //Random id works.. but see no reason to do so. For now
+const LOGIN = 'bmwm';
+const PASSWORD = 'bmwm77';
+const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=Bmw.mpack"%"40bk.ru&name_person="%"D5"%"E0"%"F0"%"E8"%"F2"%"EE"%"ED"%"EE"%"E2+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E9+"%"C8"%"E2"%"E0"%"ED"%"EE"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code="%"2B7910&tel_name=4287486&dos_ot=&dos_do=&adr_name="%"C7"%"E0"%"E1"%"E5"%"F0"%"F3+"%"E1"%"E5"%"E7+"%"EE"%"F2"%"EA"%"E0"%"E7"%"ED"%"EE+100"%"25&order_metod=1&send_to_order=ok&d=1&nav=done';
+const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
 
 
 // This is a test acc, but please, don't overuse this
-
 const PHPSESSID = 'sd1fmgsdf3hllafr5g8c73k511';     //Random id works.. but see no reason to do so. For now
 const LOGIN = 'aroomer';
 const PASSWORD = 'kladblad';
-const CHECKOUTSUFFIX = '&dostavka_metod=1&mail=i0n0ff"%"40live.ru&name_person="%"D0"%"E5"%"E7"%"ED"%"E8"%"F7"%"E5"%"ED"%"EA"%"EE+"%"C0"%"ED"%"E0"%"F2"%"EE"%"EB"%"E8"%"E9+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E5"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899914&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"E8"%"F0"%"EE"%"E2"%"E0"%"ED"%"E8"%"E5&order_metod=1&send_to_order=ok&d=1&nav=done';
-const MAXBUYS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
+const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=i0n0ff"%"40live.ru&name_person="%"D0"%"E5"%"E7"%"ED"%"E8"%"F7"%"E5"%"ED"%"EA"%"EE+"%"C0"%"ED"%"E0"%"F2"%"EE"%"EB"%"E8"%"E9+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E5"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899914&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"E8"%"F0"%"EE"%"E2"%"E0"%"ED"%"E8"%"E5&order_metod=1&send_to_order=ok&d=1&nav=done';
+const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
 const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;
 //-------
 
@@ -49,7 +48,7 @@ function generateMonthFolder ()
 
 function logDef($logMsg) // This is for default logging {$date - message \n}
 {
-    logBeg($logMsg . "\n");
+    logBeg($logMsg . PHP_EOL);
 }
 
 function logBeg($logMsg)  // This is for logging without break line (to be continued) {$date - message part1 ...}
@@ -59,18 +58,18 @@ function logBeg($logMsg)  // This is for logging without break line (to be conti
 
 function logEnd($logMsg) // This is for continuing previous logging function {... -> message part2 \n}
 {
-    logWrite(" -> " . $logMsg . "\n");
+    logWrite(" -> " . $logMsg . PHP_EOL);
 }
 
 function logError($logMsg) // This is for errors (maybe for smth else to be implemented)
 {
-    logBeg('!!! ERROR !!! : '.$logMsg . "\n");
+    logBeg('!!! ERROR !!! : '.$logMsg . PHP_EOL);
 }
 
 function logWrite($logMsg)
 {
     global $logFolderMonth;
-    $logFileAddress = $logFolderMonth . '/' . date('Y-m-d') . '.log';
+    $logFileAddress = $logFolderMonth . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
     checkLogFolder ();
     file_put_contents($logFileAddress, $logMsg, FILE_APPEND);
 }
@@ -117,56 +116,16 @@ function generatePreviousIdListFileAddress ($daysAgo): string
     return generatePreviousIdListFileAddress ().'.log'
 }*/
 
-function generateFileAddress ($name)
+function generateFileAddress ($name): string
 {
     global $logFolderMonth;
     checkLogFolder();
-    return $logFolderMonth . DIRECTORY_SEPARATOR. $name;
+    return $logFolderMonth . DIRECTORY_SEPARATOR . $name;
 }
 
 
 //-------  curl function
 
-
-
-
-
-function universalCurl($urlPage, $postBool, $headerArray, $postfieldString = '')
-{
-    if ($postBool)  //somehow adding to an array 2 elements wasn't an option, since keys for some reason were not as numbers, not like 'CURLOPT_HEADER'
-    {
-        $options = [CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => false,  //don't return headers
-            CURLOPT_AUTOREFERER => true,  //set referrer on redirect
-            CURLOPT_CONNECTTIMEOUT => 180,  //timeout on connect
-            CURLOPT_TIMEOUT => 180,  //timeout on response
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_HTTPHEADER => $headerArray,
-
-            CURLOPT_POST => 1,  //I am sending post data
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $postfieldString,
-        ];
-    } else
-    {
-        $options = [CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => false,  //don't return headers
-            CURLOPT_AUTOREFERER => true,  //set referrer on redirect
-            CURLOPT_CONNECTTIMEOUT => 180,  //timeout on connect
-            CURLOPT_TIMEOUT => 180,  //timeout on response
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_HTTPHEADER => $headerArray,
-        ];
-    }
-    $ch = curl_init(URL . $urlPage);
-    curl_setopt_array($ch, $options);
-    $result = curl_exec($ch);
-    curl_close($ch);
-    return $result;
-}
-
-
-/*
 function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//todo $isPost to default
 {
     $options = [CURLOPT_RETURNTRANSFER => true,
@@ -186,10 +145,9 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
     $ch = curl_init(URL . $urlPage);
     curl_setopt_array($ch, $options);
     $result = curl_exec($ch);
-//    $phpRes = curl_getinfo();
     curl_close($ch);
     return $result;
-}*/
+}
 
 
 function loginCurl() : string
@@ -201,6 +159,7 @@ function loginCurl() : string
  * checks if we are logined
  * @description checks through curl
  */
+
 function checkLoginCurl () : void
 {
     $result = universalCurl("users/", false, array(COOKIEPHPSESSID));
@@ -234,7 +193,7 @@ function getCartPageCurl() //returns cart page html
 
 function checkoutCurl() // returns number of products in cart (as string)
 {
-    $postfields = 'ouid=' . getCartId() . CHECKOUTSUFFIX;
+    $postfields = 'ouid=' . getCartId() . CHECKOUT_SUFFIX;
     $result = universalCurl("done/", true, array(CONTYPEAPP, COOKIEPHPSESSID), $postfields);
     $result = iconv('CP1251', 'UTF-8', $result);
     logDef('Checkout seems to be complete');
@@ -259,7 +218,7 @@ if (!function_exists('str_contains')) {
 
 //-------   Data processing functions
 
-function getProdIdsFromCat ($idCategory) { //returns only array of prod IDs from Category page
+function getProdIdsFromCat ($idCategory) { //returns only array of prod IDs from Category page  //todo implement php_querry
 
     $url = "shop/CID_".$idCategory."_ALL.html";
     $catData = universalCurl($url,false,array(COOKIEPHPSESSID));
@@ -284,7 +243,7 @@ function getIdsOfAllCurProducts (): array
     return $idsOfAllCurrentProducts;
 }
 
-function getCartId()
+function getCartId()    //todo implement php_querry
 {
     $htmlCartPageUnedited = getCartPageCurl(); // I wanna keep unedited in case of failing of getting the id
 //    $htmlCartPageUnedited = iconv('CP1251', 'UTF-8', $htmlCartPageUnedited); // no reason to encode since we're getting cart ID
@@ -336,8 +295,8 @@ function addToCartNewProducts ()
     {
         logEnd('No new products found. Gonna end this session now');
         return false;
-    } else if ($countOfNewProducts > MAXBUYS) {
-        logError("There were too much of new products. Max limit is " . MAXBUYS . ". Gonna end this session now");
+    } else if ($countOfNewProducts > MAX_NEW_PRODUCTS) {
+        logError("There were too much of new products. Max limit is " . MAX_NEW_PRODUCTS . ". Gonna end this session now");
         return false;
     } else {
         logEnd('Starting adding to cart');
@@ -381,12 +340,11 @@ $start = new DateTime();
 logDef('-------------NEW-----------------');
 loginCurl();
 checkLoginCurl();
-//sleep(5);
 if (makeSureCartIsEmptyOrExit()) {
-    if (addToCartNewProducts()) {
-        echo checkoutCurl();
-    }
+//    if (addToCartNewProducts()) {
+//        echo checkoutCurl();
+//    }
 }
-logDef ("Program Runtime:" . (new DateTime())->diff($start)->format("%h:%i:%s") );
+logDef ("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s") );
 logDef('-------------END-----------------');
 ?>

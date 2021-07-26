@@ -102,3 +102,13 @@
  -> Success. Cart count now is 8
 2021-07-25 15:50:19 (MSK) - 0:0:48
 2021-07-25 15:50:19 (MSK) - -------------END-----------------
+2021-07-25 19:37:04 (MSK) - -------------NEW-----------------
+2021-07-25 19:37:05 (MSK) - Login was successful. Didn't check if it is the right account, but that seems to be an overkill
+2021-07-25 19:37:06 (MSK) - Cart is empty after login (Good)
+2021-07-25 19:37:06 (MSK) - Program Runtime:0:0:1
+2021-07-25 19:37:06 (MSK) - -------------END-----------------
+2021-07-25 21:07:04 (MSK) - -------------NEW-----------------
+2021-07-25 21:07:06 (MSK) - Login was successful. Didn't check if it is the right account, but that seems to be an overkill
+2021-07-25 21:07:06 (MSK) - Cart is empty after login (Good)
+2021-07-25 21:07:06 (MSK) - Program Runtime: 0:0:1
+2021-07-25 21:07:06 (MSK) - -------------END-----------------
