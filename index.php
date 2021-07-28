@@ -1,26 +1,30 @@
 <?php
 
+//require_once 'classes/UserData.php';
+//
+//$userData = new UserData;
+
 //------------
 //-------  User Data (To edit)
 //------------
 
-/*
+
 // This the acc for real usage
 const PHPSESSID = 'rkicg4b2fofqnm01qqd5jp3d57';     //Random id works.. but see no reason to do so. For now
 const LOGIN = 'bmwm';
 const PASSWORD = 'bmwm77';
 const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=Bmw.mpack"%"40bk.ru&name_person="%"D5"%"E0"%"F0"%"E8"%"F2"%"EE"%"ED"%"EE"%"E2+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E9+"%"C8"%"E2"%"E0"%"ED"%"EE"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code="%"2B7910&tel_name=4287486&dos_ot=&dos_do=&adr_name="%"C7"%"E0"%"E1"%"E5"%"F0"%"F3+"%"E1"%"E5"%"E7+"%"EE"%"F2"%"EA"%"E0"%"E7"%"ED"%"EE+100"%"25&order_metod=1&send_to_order=ok&d=1&nav=done';
 const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
-const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;
 
-
+/*
 // This is a test acc, but please, don't overuse this
 const PHPSESSID = 'sd1fmgsdf3hllafr5g8c73k511';     //Random id works.. but see no reason to do so. For now
 const LOGIN = 'aroomer';
 const PASSWORD = 'kladblad';
 const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=i0n0ff"%"40live.ru&name_person="%"D0"%"E5"%"E7"%"ED"%"E8"%"F7"%"E5"%"ED"%"EA"%"EE+"%"C0"%"ED"%"E0"%"F2"%"EE"%"EB"%"E8"%"E9+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E5"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899914&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"E8"%"F0"%"EE"%"E2"%"E0"%"ED"%"E8"%"E5&order_metod=1&send_to_order=ok&d=1&nav=done';
 const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
-const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
 //-------
 
 const URL = 'https://detal77.ru/';
@@ -31,14 +35,15 @@ const CONTYPEAPP = "Content-Type: application/x-www-form-urlencoded";
 const CONTYPEUTF = "Content-Type: text/plain;charset=UTF-8";
 const LOGFOLDERROOT = "log";
 const FAKE_PROD_ID = 'z';
+const NO_PREVIOUS_ID_LIST_MESSAGE = 'No previous ID list';
 
-$logFolderMonth = LOGFOLDERROOT . "/" .date('Y-m');
+$logFolderMonth = LOGFOLDERROOT . DIRECTORY_SEPARATOR . date('Y') . DIRECTORY_SEPARATOR . date('m');
 
 /*
 //const LOGFOLDREMONTH = LOGFOLDERROOT . generateMonthFolder ();
 function generateMonthFolder ()
 {
-    return "/" .date('Y-m');
+    return DIRECTORY_SEPARATOR . date('Y-m');
 }*/
 
 //------------
@@ -90,11 +95,10 @@ function checkLogFolder () { // creates folders if there are none
 
 function writeToIdList($idList)
 {
-    logBeg('Writing IDs we have got from crawling:');
+    logBeg('Writing new IDs (from crawling) to file:');
     $idListFileAddress = generateIdListFileAddress ();
-//    file_put_contents($idListFileAddress, implode("\n" , $idList));
     file_put_contents( $idListFileAddress, json_encode ($idList) );
-    logEnd('Done - product count is ' . count($idList));
+    logEnd('Done - new product count is ' . count($idList));
 }
 
 function generateIdListFileAddress (): string
@@ -160,7 +164,7 @@ function loginCurl() : string
  * @description checks through curl
  */
 
-function checkLoginCurl () : void
+function checkLoginCurl () : void //todo log/check what account it is, and which also log LOGIN
 {
     $result = universalCurl("users/", false, array(COOKIEPHPSESSID));
 
@@ -218,7 +222,7 @@ if (!function_exists('str_contains')) {
 
 //-------   Data processing functions
 
-function getProdIdsFromCat ($idCategory) { //returns only array of prod IDs from Category page  //todo implement php_querry
+function getProdIdsFromCat ($idCategory) { //returns only array of prod IDs from Category page  //todo implement php_query
 
     $url = "shop/CID_".$idCategory."_ALL.html";
     $catData = universalCurl($url,false,array(COOKIEPHPSESSID));
@@ -261,6 +265,7 @@ function getCartId()    //todo implement php_querry
 //returns new product ids in array (difference between scraped prod ids vs previous scraping)
 function findNewProducts () : array
 {
+    $currentProductIds = getIdsOfAllCurProducts();
     $fileProdIdAddress = generateIdListFileAddress ();
     if (!file_exists($fileProdIdAddress) )
     {
@@ -274,14 +279,17 @@ function findNewProducts () : array
             }
             if ($i === DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS)
             {
-                logError("Previous product id file is not found (checked last few days)");
-                return array();
+                logError("Previous product id file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Gonna end this session after writing new IDs");
+                writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
+                return array(NO_PREVIOUS_ID_LIST_MESSAGE); // returns this value to stop script
             }
         }
     }
+
     $previousProductIds = json_decode(file_get_contents($fileProdIdAddress), true);
+
     logDef('Previous product count is ' . count ($previousProductIds) );
-    $currentProductIds = getIdsOfAllCurProducts();
+
     writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
     return array_diff($currentProductIds, $previousProductIds);
 }
@@ -289,6 +297,9 @@ function findNewProducts () : array
 function addToCartNewProducts ()
 {
     $newProducts = findNewProducts(); //returns array with new prods (difference between cur vs last ids)
+    if ($newProducts[0] == NO_PREVIOUS_ID_LIST_MESSAGE) { // If there are no previous ID lists (last few days) to compare new ID list view
+        return false;
+    }
     $countOfNewProducts = count($newProducts);
     logBeg("Count of new products found: $countOfNewProducts");
     if ($countOfNewProducts == 0 )
@@ -325,6 +336,8 @@ function makeSureCartIsEmptyOrExit () {
         if (addToCartCurl(FAKE_PROD_ID) != 0) {
             logError("Cart is not empty after login and even after trying to clear it out");
             return false;
+        } else {
+            logDef("Successfully cleared the cart");
         }
     } else {
         logDef("Cart is empty after login (Good)");
@@ -341,9 +354,9 @@ logDef('-------------NEW-----------------');
 loginCurl();
 checkLoginCurl();
 if (makeSureCartIsEmptyOrExit()) {
-//    if (addToCartNewProducts()) {
-//        echo checkoutCurl();
-//    }
+    if (addToCartNewProducts()) {
+        echo checkoutCurl();
+    }
 }
 logDef ("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s") );
 logDef('-------------END-----------------');
