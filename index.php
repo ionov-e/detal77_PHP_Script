@@ -1,5 +1,13 @@
 <?php
 
+chdir(dirname(__FILE__));
+
+
+const CAT_IDS_FOLDER = 'cat_csv';
+const CAT_IDS_ALL = 'all';
+const CAT_IDS_BMW_ALL = 'bmw_all';
+
+
 //require_once 'classes/UserData.php';
 //
 //$userData = new UserData;
@@ -7,24 +15,37 @@
 //------------
 //-------  User Data (To edit)
 //------------
+/*
+// New acc.... no longer exists
+const PHPSESSID = 'nvee8memlkb9ut6o1hsrj1hvp3';     //Random id works.. but see no reason to do so. For now
+const LOGIN = 'hellcatt';
+const PASSWORD = 'hEllcatt932';
+const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=hellcatt"%"40internet.ru&name_person="%"CA"%"EE"%"E7"%"E5"%"ED"%"EE"%"E2+"%"C2"%"EB"%"E0"%"E4"%"E8"%"EC"%"E8"%"F0+"%"C2"%"EB"%"E0"%"E4"%"E8"%"EC"%"E8"%"F0"%"EE"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89885342991&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"FC&order_metod=1&send_to_order=ok&d=1&nav=done';
+const MAX_NEW_PRODUCTS = 100; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
 
 
+/*
 // This the acc for real usage
 const PHPSESSID = 'rkicg4b2fofqnm01qqd5jp3d57';     //Random id works.. but see no reason to do so. For now
 const LOGIN = 'bmwm';
 const PASSWORD = 'bmwm77';
-const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=Bmw.mpack"%"40bk.ru&name_person="%"D5"%"E0"%"F0"%"E8"%"F2"%"EE"%"ED"%"EE"%"E2+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E9+"%"C8"%"E2"%"E0"%"ED"%"EE"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code="%"2B7910&tel_name=4287486&dos_ot=&dos_do=&adr_name="%"C7"%"E0"%"E1"%"E5"%"F0"%"F3+"%"E1"%"E5"%"E7+"%"EE"%"F2"%"EA"%"E0"%"E7"%"ED"%"EE+100"%"25&order_metod=1&send_to_order=ok&d=1&nav=done';
-const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
-const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;
+const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=Bmw.mpack%40bk.ru&name_person=%D5%E0%F0%E8%F2%EE%ED%EE%E2+%C0%ED%E4%F0%E5%E9+%C8%E2%E0%ED%EE%E2%E8%F7&org_name=&org_inn=&org_kpp=&tel_code=%2B7910&tel_name=4287486&dos_ot=&dos_do=&adr_name=%C7%E0%E1%E5%F0%F3+%E1%E5%E7+%EE%F2%EA%E0%E7%ED%EE+100%25&order_metod=1&send_to_order=ok&d=1&nav=done';
+const MAX_NEW_PRODUCTS = 100; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
 
-/*
+
+
+
 // This is a test acc, but please, don't overuse this
-const PHPSESSID = 'sd1fmgsdf3hllafr5g8c73k511';     //Random id works.. but see no reason to do so. For now
+const PHPSESSID = 'rnlarqb3bji09g322fam8ydr3k';     //Random id works.. but see no reason to do so. For now   before: rnlarqb3bji09g322fam8ydr3k
 const LOGIN = 'aroomer';
 const PASSWORD = 'kladblad';
-const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=i0n0ff"%"40live.ru&name_person="%"D0"%"E5"%"E7"%"ED"%"E8"%"F7"%"E5"%"ED"%"EA"%"EE+"%"C0"%"ED"%"E0"%"F2"%"EE"%"EB"%"E8"%"E9+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E5"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899914&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"E8"%"F0"%"EE"%"E2"%"E0"%"ED"%"E8"%"E5&order_metod=1&send_to_order=ok&d=1&nav=done';
+//const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=i0n0ff"%"40live.ru&name_person="%"D0"%"E5"%"E7"%"ED"%"E8"%"F7"%"E5"%"ED"%"EA"%"EE+"%"C0"%"ED"%"E0"%"F2"%"EE"%"EB"%"E8"%"E9+"%"C0"%"ED"%"E4"%"F0"%"E5"%"E5"%"E2"%"E8"%"F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899914&dos_ot=&dos_do=&adr_name="%"C1"%"F0"%"EE"%"ED"%"E8"%"F0"%"EE"%"E2"%"E0"%"ED"%"E8"%"E5&order_metod=1&send_to_order=ok&d=1&nav=done';
+const CHECKOUT_SUFFIX = '&dostavka_metod=1&mail=rukinogi111%40mail.ru&name_person=%D0%E5%E7%ED%E8%F7%E5%ED%EA%EE+%C0%ED%E0%F2%EE%EB%E8%E9+%C0%ED%E4%F0%E5%E5%E2%E8%F7&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=89892899954&dos_ot=&dos_do=&adr_name=%C1%F0%EE%ED%E8%F0%EE%E2%E0%ED%E8%E5&order_metod=1&send_to_order=ok&d=1&nav=done';
 const MAX_NEW_PRODUCTS = 60; // max allowed cart products amount. If the count of new IDs is more than this - we will not add to cart at all. Because probably something went wrong
-const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;*/
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 3;
+const CAT_IDS_USED_NAME = CAT_IDS_BMW_ALL;
 //-------
 
 const URL = 'https://detal77.ru/';
@@ -36,6 +57,8 @@ const CONTYPEUTF = "Content-Type: text/plain;charset=UTF-8";
 const LOGFOLDERROOT = "log";
 const FAKE_PROD_ID = 'z';
 const NO_PREVIOUS_ID_LIST_MESSAGE = 'No previous ID list';
+const ERROR_WITH_CAT_IDS_CSV = 'No CSV File';
+const CAT_IDS_USED_ADDRESS = CAT_IDS_FOLDER . DIRECTORY_SEPARATOR . CAT_IDS_USED_NAME . '.csv';
 
 $logFolderMonth = LOGFOLDERROOT . DIRECTORY_SEPARATOR . date('Y') . DIRECTORY_SEPARATOR . date('m');
 
@@ -93,17 +116,33 @@ function checkLogFolder () { // creates folders if there are none
     }
 }
 
+function checkCsvCatFile () : bool { // creates folders if there are none
+    if (!is_dir(CAT_IDS_FOLDER))
+    {
+        logError('There is no folder with category ids named: ' . CAT_IDS_FOLDER);
+        return false;
+    }
+    if (!is_file(CAT_IDS_USED_ADDRESS))
+    {
+        logError('There is no file with category ids in: ' . CAT_IDS_USED_NAME);
+        return false;
+    }
+    logDef('Found and used csv with categories ids: ' . CAT_IDS_USED_NAME);
+    return true;
+}
+
+
 function writeToIdList($idList)
 {
     logBeg('Writing new IDs (from crawling) to file:');
     $idListFileAddress = generateIdListFileAddress ();
     file_put_contents( $idListFileAddress, json_encode ($idList) );
-    logEnd('Done - new product count is ' . count($idList));
+    logEnd('Done - file product count now is ' . count($idList));
 }
 
 function generateIdListFileAddress (): string
 {
-    return generateFileAddress (date('Y-m-d') . '_allProdIds.txt');
+    return generateFileAddress (date('Y-m-d') . '_' . CAT_IDS_USED_NAME . '.txt');
 }
 
 function generatePreviousIdListFileAddress ($daysAgo): string //todo combine with generateIdListFileAddress
@@ -112,7 +151,7 @@ function generatePreviousIdListFileAddress ($daysAgo): string //todo combine wit
     checkLogFolder ();
     $time = new DateTime ();
     $selectedDay = $time->modify("-{$daysAgo} days")->format("Y-m-d");
-    return $logFolderMonth . DIRECTORY_SEPARATOR . $selectedDay . '_allProdIds.txt';
+    return $logFolderMonth . DIRECTORY_SEPARATOR . $selectedDay . CAT_IDS_USED_NAME . '.txt';
 }
 /*
 function generatePreviousIdListFileAddress ($daysAgo): string
@@ -139,6 +178,7 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
         CURLOPT_TIMEOUT => 180,  //timeout on response
         CURLOPT_MAXREDIRS => 10,
         CURLOPT_HTTPHEADER => $headerArray,
+//        CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0", //Not needed at all
     ];
     if ($isPost) {  //somehow adding to an array 2 elements wasn't an option, since keys for some reason were not as numbers, not like 'CURLOPT_HEADER'
         $options [CURLOPT_POST] = 1;
@@ -156,6 +196,7 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
 
 function loginCurl() : string
 {
+    logDef("Attempting to log in. Account: " . LOGIN);
     return universalCurl("order/", true, array(CONTYPEAPP, COOKIEPHPSESSID), LOGININFO);
 }
 
@@ -164,13 +205,18 @@ function loginCurl() : string
  * @description checks through curl
  */
 
-function checkLoginCurl () : void //todo log/check what account it is, and which also log LOGIN
+function checkLoginCurl () : void
 {
     $result = universalCurl("users/", false, array(COOKIEPHPSESSID));
 
     if (str_contains($result, 'rosette.gif'))//Made same function for php version < 8
     {
-        logDef("Login was successful. Didn't check if it is the right account, but that seems to be an overkill");
+        logBeg("Logged in some account");
+        if (str_contains($result, LOGIN)) {
+            logEnd ("(Good) Found login name on user page (" . LOGIN . ")");
+        } else {
+            logError ("Did not found word" . LOGIN . "on user page");
+        }
     } else {
         logError("Login failure");
     }
@@ -235,9 +281,9 @@ function getProdIdsFromCat ($idCategory) { //returns only array of prod IDs from
 
 function getIdsOfAllCurProducts (): array
 {
-    $catIdsAndNames = array_map('str_getcsv', file('cat_ids.csv'));  //returns array with all cat ids
+    $catIdsAndNames = array_map('str_getcsv', file(CAT_IDS_USED_ADDRESS));  //returns array with all cat ids
     $idsOfAllCurrentProducts = [];
-    logBeg("Categories product count crawling start:\n");
+    logDef("There are " . count($catIdsAndNames) . " categories in file. Starting crawling product ids from categories:");
     foreach ($catIdsAndNames as $idAndName) {
         $idsFromCurCat = getProdIdsFromCat($idAndName[0]);
         $idsOfAllCurrentProducts = array_merge($idsOfAllCurrentProducts, $idsFromCurCat);
@@ -265,6 +311,9 @@ function getCartId()    //todo implement php_querry
 //returns new product ids in array (difference between scraped prod ids vs previous scraping)
 function findNewProducts () : array
 {
+    if (!checkCsvCatFile ()) {
+        return [0 => ERROR_WITH_CAT_IDS_CSV]; // returns this value to stop script
+    }//TODO !!!
     $currentProductIds = getIdsOfAllCurProducts();
     $fileProdIdAddress = generateIdListFileAddress ();
     if (!file_exists($fileProdIdAddress) )
@@ -279,16 +328,16 @@ function findNewProducts () : array
             }
             if ($i === DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS)
             {
-                logError("Previous product id file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Gonna end this session after writing new IDs");
+                logError("Previous product id-list file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Last check address ({$fileProdIdAddress}) Gonna end this session after writing new IDs");
                 writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
-                return array(NO_PREVIOUS_ID_LIST_MESSAGE); // returns this value to stop script
+                return [0 => NO_PREVIOUS_ID_LIST_MESSAGE]; // returns this value to stop script
             }
         }
     }
 
     $previousProductIds = json_decode(file_get_contents($fileProdIdAddress), true);
 
-    logDef('Previous product count is ' . count ($previousProductIds) );
+    logDef("{$fileProdIdAddress} : Previous product count is " . count ($previousProductIds) );
 
     writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
     return array_diff($currentProductIds, $previousProductIds);
@@ -297,20 +346,23 @@ function findNewProducts () : array
 function addToCartNewProducts ()
 {
     $newProducts = findNewProducts(); //returns array with new prods (difference between cur vs last ids)
-    if ($newProducts[0] == NO_PREVIOUS_ID_LIST_MESSAGE) { // If there are no previous ID lists (last few days) to compare new ID list view
-        return false;
-    }
     $countOfNewProducts = count($newProducts);
-    logBeg("Count of new products found: $countOfNewProducts");
-    if ($countOfNewProducts == 0 )
-    {
-        logEnd('No new products found. Gonna end this session now');
+    if ( $countOfNewProducts == 1 )    {
+        if ($newProducts[0] == NO_PREVIOUS_ID_LIST_MESSAGE) { // If there are no previous ID lists (last few days) to compare new ID list view
+            return false;
+        } elseif ($newProducts[0] == ERROR_WITH_CAT_IDS_CSV) { // If there is no previous csv with cat ID list (or folder csv)
+            return false;
+        }
+    }
+    logDef("Count of new products found: $countOfNewProducts");
+    if ( $countOfNewProducts == 0 )    {
+        logDef('No new products found. Gonna end this session now');
         return false;
     } else if ($countOfNewProducts > MAX_NEW_PRODUCTS) {
         logError("There were too much of new products. Max limit is " . MAX_NEW_PRODUCTS . ". Gonna end this session now");
         return false;
     } else {
-        logEnd('Starting adding to cart');
+        logDef('-> -> -> -> -> -> Starting adding to cart <- <- <- <- <- <-');
         $cartCountOld = 0;
         foreach ($newProducts as $newProduct)
         {
@@ -355,9 +407,10 @@ loginCurl();
 checkLoginCurl();
 if (makeSureCartIsEmptyOrExit()) {
     if (addToCartNewProducts()) {
-        echo checkoutCurl();
+        checkoutCurl();
     }
 }
 logDef ("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s") );
 logDef('-------------END-----------------');
+
 ?>
