@@ -10,3 +10,6 @@
 /.idea/modules.xml
 /.idea/test.loc.iml
 /.idea/vcs.xml
+/log/
+/.htaccess
+/.idea/webServers.xml
