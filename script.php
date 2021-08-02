@@ -3,30 +3,45 @@
 //require_once 'classes/UserData.php';
 //
 //$userData = new UserData;
+set_time_limit(300);
+
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 1;
 
 const URL = 'https://detal77.ru/';
-const COOKIEPHPSESSID = 'Cookie: PHPSESSID=' . PHPSESSID;
-const LOGININFOSUFFIX = "&safe_users=1&user_enter=1";
-const LOGININFO = "login=" . LOGIN . "&password=" . PASSWORD . LOGININFOSUFFIX;
-const CONTYPEAPP = "Content-Type: application/x-www-form-urlencoded";
-const CONTYPEUTF = "Content-Type: text/plain;charset=UTF-8";
-const LOGFOLDERROOT = "log";
-const NO_PREVIOUS_ID_LIST_MESSAGE = 'No previous ID list';
+const LOGIN_INFO_SUFFIX = "&safe_users=1&user_enter=1";
+const LOGIN_INFO = "login=" . LOGIN . "&password=" . PASSWORD . LOGIN_INFO_SUFFIX;
+const CON_TYPE_APP = "Content-Type: application/x-www-form-urlencoded";
+const CON_TYPE_UTF = "Content-Type: text/plain;charset=UTF-8";
+const LOG_FOLDER_ROOT = "log";
+const NO_PREVIOUS_ID_LIST_MESSAGE = 'No previous ID list';  //todo array with one element (multiple instances here 0 => ...)
+const ERROR_PRODUCT_CRAWLING_EMPTY = 'Search result is zero';
 const ERROR_WITH_CAT_IDS_CSV = 'No CSV File';
 const CAT_IDS_USED_ADDRESS = CAT_IDS_FOLDER . DIRECTORY_SEPARATOR . CAT_IDS_USED_NAME . '.csv';
 
-$logFolderMonth = LOGFOLDERROOT . DIRECTORY_SEPARATOR . date('Y') . DIRECTORY_SEPARATOR . date('m');
-
-/*
-//const LOGFOLDREMONTH = LOGFOLDERROOT . generateMonthFolder ();
-function generateMonthFolder ()
-{
-    return DIRECTORY_SEPARATOR . date('Y-m');
-}*/
+$logFolderMonth = generateLogFolderMonth();
+$cookiePhpsessid = 'Cookie: PHPSESSID=' . generateRandomString();
 
 //------------
 //-------  Functions
 //------------
+
+function generateLogFolderMonth($daysAgo = 0): string
+{
+    $time = new DateTime ();
+    return LOG_FOLDER_ROOT . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("Y") . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("m");
+}
+
+function generateRandomString($length = 26): string
+{ //Not mine. Function for generating random SessionID. Looks like: 'rnlarqb3bji09g322fam8ydr3k'
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyz';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+}
+
 
 //-------  Log Functions
 
@@ -58,13 +73,20 @@ function logWrite($logMsg)
     file_put_contents($logFileAddress, $logMsg, FILE_APPEND);
 }
 
+function endScript()
+{
+    global $start;
+    logDef("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s"));
+    logDef('-------------END-----------------');
+}
+
 //-------  File Functions
 
-function checkLogFolder()
+function checkLogFolder(): void
 { // creates folders if there are none
     global $logFolderMonth;
-    if (!is_dir(LOGFOLDERROOT)) {
-        mkdir(LOGFOLDERROOT, 0777, true);
+    if (!is_dir(LOG_FOLDER_ROOT)) {
+        mkdir(LOG_FOLDER_ROOT, 0777, true);
     }
     if (!is_dir($logFolderMonth)) {
         mkdir($logFolderMonth, 0777, true);
@@ -85,33 +107,23 @@ function checkCsvCatFile(): bool
     return true;
 }
 
-function writeToIdList($idList)
+function writeToIdList($idList): void
 {
     logBeg('Writing new IDs (from crawling) to file:');
     $idListFileAddress = generateIdListFileAddress();
     file_put_contents($idListFileAddress, json_encode($idList));
     logEnd('Done - file product count now is ' . count($idList));
+
 }
 
-function generateIdListFileAddress(): string
+function generateIdListFileAddress($daysAgo = 0): string
 {
-    return generateFileAddress(date('Y-m-d') . '_' . CAT_IDS_USED_NAME . '.txt');
-}
-
-function generatePreviousIdListFileAddress($daysAgo): string //todo combine with generateIdListFileAddress
-{
-    global $logFolderMonth;
     checkLogFolder();
     $time = new DateTime ();
-    $selectedDay = $time->modify("-{$daysAgo} days")->format("Y-m-d");
-    return $logFolderMonth . DIRECTORY_SEPARATOR . $selectedDay . CAT_IDS_USED_NAME . '.txt';
+    $newLogFolderMonth = generateLogFolderMonth($daysAgo); // It can be different month
+    $selectedDay = $time->modify("-$daysAgo days")->format("Y-m-d");
+    return $newLogFolderMonth . DIRECTORY_SEPARATOR . $selectedDay . '_' . CAT_IDS_USED_NAME . '.txt';
 }
-
-/*
-function generatePreviousIdListFileAddress ($daysAgo): string
-{
-    return generatePreviousIdListFileAddress ().'.log'
-}*/
 
 function generateFileAddress($name): string
 {
@@ -139,6 +151,19 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
     $ch = curl_init(URL . $urlPage);
     curl_setopt_array($ch, $options);
     $result = curl_exec($ch);
+    if (!curl_errno($ch)) {  //Not mine check
+        switch ($http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE)) {
+            case 200:  // OK
+                break;
+            case 302:  // Redirects everytime on order page only // OK
+                //                logEnd("Got redirected (302 HTTP CODE) from url: '$urlPage'");
+                break;
+            default:
+                logError("Unexpected HTTP code from url: '$urlPage' ===> " . $http_code);
+                curl_close($ch);
+                endScript();
+        }
+    }
     curl_close($ch);
     return $result;
 }
@@ -146,8 +171,9 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
 
 function loginCurl(): string
 {
+    global $cookiePhpsessid; //todo universalCurl can be rewritten, not to pass $cookiePhpsessid everytime to the array
     logDef("Attempting to log in. Account: " . LOGIN);
-    return universalCurl("order/", true, [CONTYPEAPP, COOKIEPHPSESSID], LOGININFO);
+    return universalCurl("order/", true, [CON_TYPE_APP, $cookiePhpsessid], LOGIN_INFO);
 }
 
 /**
@@ -155,54 +181,65 @@ function loginCurl(): string
  * @description checks through curl
  */
 
-function checkLoginCurl(): void
+function checkLoginCurl(): bool
 {
-    $result = universalCurl("users/", false, [COOKIEPHPSESSID]);
+    global $cookiePhpsessid;
+    $result = universalCurl("users/", false, [$cookiePhpsessid]);
 
     if (str_contains($result, 'rosette.gif'))//Made same function for php version < 8
     {
         logBeg("Logged in some account");
         if (str_contains($result, LOGIN)) {
             logEnd("(Good) Found login name on user page (" . LOGIN . ")");
+            return true;
         } else {
             logError("Did not found word" . LOGIN . "on user page");
+            return false;
         }
     } else {
         logError("Login failure");
+        return false;
     }
 }
 
 function clearCartCurl(): void   // clear cart
 {
-    universalCurl("order/?cart=clean", false, [COOKIEPHPSESSID]);
+    global $cookiePhpsessid;
+    universalCurl("order/?cart=clean", false, [$cookiePhpsessid]);
 }
 
 function addToCartCurl($prodID): string // returns number of products in cart (as string)
 {
+    global $cookiePhpsessid;
     $postfields = "xid=" . $prodID . "&num=1&xxid=0&addname=&same=0&test=303";
-    $result = universalCurl("phpshop/ajax/cartload.php", true, [CONTYPEUTF, COOKIEPHPSESSID], $postfields);
+    $result = universalCurl("phpshop/ajax/cartload.php", true, [CON_TYPE_UTF, $cookiePhpsessid], $postfields);
     $result = substr($result, strpos($result, "num': '") + 7);
-    $result = strstr($result, "','sum", true);
-    return $result;
+    //todo check if string is an int::: PHP Warning: A non-numeric value encountered
+    return strstr($result, "','sum", true);
 }
 
 function checkCartCount(): string // returns number of products in cart (as string)
 {
-    $result = universalCurl("phpshop/ajax/cartload.php", false, [CONTYPEUTF, COOKIEPHPSESSID]);
+    global $cookiePhpsessid;
+    $result = universalCurl("phpshop/ajax/cartload.php", false, [CON_TYPE_UTF, $cookiePhpsessid]);
     $result = substr($result, strpos($result, "num': '") + 7);
+    /** @noinspection PhpUnnecessaryLocalVariableInspection */
     $result = strstr($result, "','sum", true);
     return $result;
 }
 
 function getCartPageCurl() //returns cart page html
 {
-    return universalCurl("order/", false, [COOKIEPHPSESSID]);
+    global $cookiePhpsessid;
+    return universalCurl("order/", false, [$cookiePhpsessid]);
 }
 
 function checkoutCurl() // returns number of products in cart (as string)
 {
+    global $cookiePhpsessid;
+    pauseABit();
     $postfields = 'ouid=' . getCartId() . '&dostavka_metod=1&mail=' . encodeToUrl(USER_MAIL) . '&name_person=' . encodeToUrl(USER_NAME) . '&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=' . encodeToUrl(USER_PHONE) . '&dos_ot=&dos_do=&adr_name=' . encodeToUrl(USER_ADDRESS) . '&order_metod=1&send_to_order=ok&d=1&nav=done';
-    $result = universalCurl("done/", true, [CONTYPEAPP, COOKIEPHPSESSID], $postfields);
+    $result = universalCurl("done/", true, [CON_TYPE_APP, $cookiePhpsessid], $postfields);
     $result = iconv('CP1251', 'UTF-8', $result);
     logDef('Checkout seems to be complete');
     //Little final search:
@@ -219,7 +256,7 @@ function checkoutCurl() // returns number of products in cart (as string)
 
 // based on original work from the PHP Laravel framework // Copied from internet for php version < 8
 if (!function_exists('str_contains')) {
-    function str_contains($haystack, $needle)
+    function str_contains($haystack, $needle): bool
     {
         return $needle !== '' && mb_strpos($haystack, $needle) !== false;
     }
@@ -234,9 +271,9 @@ function encodeToUrl($string): string
 
 function getProdIdsFromCat($idCategory)
 { //returns only array of prod IDs from Category page  //todo implement php_query
-
+    global $cookiePhpsessid;
     $url = "shop/CID_" . $idCategory . "_ALL.html";
-    $catData = universalCurl($url, false, [COOKIEPHPSESSID]);
+    $catData = universalCurl($url, false, [$cookiePhpsessid]);
     //    $catData = iconv('CP1251', 'UTF-8', $catData); // no reason to encode since we're getting IDs
     $catData = strstr($catData, '<table cellpadding="0" cellspacing="0" border="0">');
     $catData = strstr($catData, '<div class="page_nava', true);
@@ -252,7 +289,8 @@ function getIdsOfAllCurProducts(): array
     foreach ($catIdsAndNames as $idAndName) {
         $idsFromCurCat = getProdIdsFromCat($idAndName[0]);
         $idsOfAllCurrentProducts = array_merge($idsOfAllCurrentProducts, $idsFromCurCat);
-        logEnd("{$idAndName[1]} has " . count($idsFromCurCat));
+        logEnd("$idAndName[1] has " . count($idsFromCurCat));
+        pauseABit();
     }
     logDef("Categories product count crawling ends with: " . count($idsOfAllCurrentProducts) . " products");
     return $idsOfAllCurrentProducts;
@@ -278,30 +316,35 @@ function findNewProducts(): array
 {
     if (!checkCsvCatFile()) {
         return [0 => ERROR_WITH_CAT_IDS_CSV]; // returns this value to stop script
-    }//TODO !!!
+    }
     $currentProductIds = getIdsOfAllCurProducts();
-    $fileProdIdAddress = generateIdListFileAddress();
-    if (!file_exists($fileProdIdAddress)) {
-        for ($i = 1; $i <= DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS; $i++) {
-            $fileProdIdAddress = generatePreviousIdListFileAddress($i);
-            if (file_exists($fileProdIdAddress)) {
-                logDef("Today's product id file is empty, but we've used it from $i days ago");
-                break;
-            }
-            if ($i === DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS) {
-                logError("Previous product id-list file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Last check address ({$fileProdIdAddress}) Gonna end this session after writing new IDs");
-                writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
-                return [0 => NO_PREVIOUS_ID_LIST_MESSAGE]; // returns this value to stop script
+    if (count($currentProductIds) == 0) { //check if there's some error, and no new products is found //todo Maybe check for not equal 0, but if for example less than half of previous list
+        logError('The crawling found no products in all selected categories');
+        return [0 => ERROR_PRODUCT_CRAWLING_EMPTY];
+    } else {
+        $fileProdIdAddress = generateIdListFileAddress();
+        if (!file_exists($fileProdIdAddress)) {
+            for ($i = 1; $i <= DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS; $i++) {
+                $fileProdIdAddress = generateIdListFileAddress($i);
+                if (file_exists($fileProdIdAddress)) {
+                    logDef("Today's product id file is empty, but we've used it from $i days ago");
+                    break;
+                }
+                if ($i === DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS) {
+                    logError("Previous product id-list file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Last check address ($fileProdIdAddress) Gonna end this session after writing new IDs");
+                    writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
+                    return [0 => NO_PREVIOUS_ID_LIST_MESSAGE]; // returns this value to stop script
+                }
             }
         }
+
+        $previousProductIds = json_decode(file_get_contents($fileProdIdAddress), true);
+
+        logDef("$fileProdIdAddress : Previous product count is " . count($previousProductIds));
+
+        writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
+        return array_diff($currentProductIds, $previousProductIds);
     }
-
-    $previousProductIds = json_decode(file_get_contents($fileProdIdAddress), true);
-
-    logDef("{$fileProdIdAddress} : Previous product count is " . count($previousProductIds));
-
-    writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
-    return array_diff($currentProductIds, $previousProductIds);
 }
 
 function addToCartNewProducts()
@@ -310,6 +353,8 @@ function addToCartNewProducts()
     $countOfNewProducts = count($newProducts);
     if ($countOfNewProducts == 1) {
         if ($newProducts[0] == NO_PREVIOUS_ID_LIST_MESSAGE) { // If there are no previous ID lists (last few days) to compare new ID list view
+            return false;
+        } elseif ($newProducts[0] == ERROR_PRODUCT_CRAWLING_EMPTY) { // If crawling ends with 0 products
             return false;
         } elseif ($newProducts[0] == ERROR_WITH_CAT_IDS_CSV) { // If there is no previous csv with cat ID list (or folder csv)
             return false;
@@ -326,6 +371,7 @@ function addToCartNewProducts()
         logDef('-> -> -> -> -> -> Starting adding to cart <- <- <- <- <- <-');
         $cartCountOld = 0;
         foreach ($newProducts as $newProduct) {
+            pauseABit();
             logEnd("Adding to cart product id: $newProduct");
             $cartCountNew = addToCartCurl($newProduct);
             if ($cartCountNew == $cartCountOld + 1) {
@@ -356,19 +402,23 @@ function makeSureCartIsEmptyOrExit()
     return true;
 }
 
+function pauseABit(): void
+{
+    sleep(3);
+}
+
 //------------
 //-------  All we do is:
 //------------
 logDef('-------------NEW-----------------');
-
-
-$isError = true;
-$isError = false;//todo wtf with defined and included?
 /*
 echo LOGIN . "\n";
 if (LOGIN) {
     echo 'Hello!!!!!!!!!';
 }
+
+$isError = true;
+$isError = false;//todo wtf with defined and included?
 
 if (!defined(LOGIN)) {
     logError("Script file was run without user-php. LOGIN is not defined " . LOGIN);
@@ -382,31 +432,29 @@ if (!defined(LOGIN)) {
     logError("USER_PHONE is not defined");
 } elseif (!defined(USER_ADDRESS)) {
     logError("USER_ADDRESS is not defined");
-} elseif (!defined(PHPSESSID)) {
-    logError("PHPSESSID is not defined");
-} elseif (!defined(MAX_NEW_PRODUCTS)) {
+} elseif (!defined(MAX_NEW_PRODUCTS)) { //todo $cookiePhpsessid check
     logError("MAX_NEW_PRODUCTS is not defined");
 } elseif (!defined(CAT_IDS_USED_NAME)) {
     logError("CAT_IDS_USED_NAME is not defined");
 } else {
     $isError = false;
     logDef("Script is run using this account: " . LOGIN);
-}*/
 
 if ($isError) {
-    logError("Script will no be run");
-} else {
-    $start = new DateTime();
-    loginCurl();
-    checkLoginCurl();
+    logDef("Ending the script");
+    endScript();
+}
+}*/
+
+$start = new DateTime();
+logDef('Used ' . $cookiePhpsessid);
+loginCurl();
+if (checkLoginCurl()) { //if false -> stop script
+    pauseABit();
     if (makeSureCartIsEmptyOrExit()) {
         if (addToCartNewProducts()) {
-                    checkoutCurl();
+            checkoutCurl();
         }
     }
-    logDef("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s"));
-    logDef('-------------END-----------------');
 }
-//$request = urlencode(iconv("UTF-8", "windows-1251", "i0n0ff@live.ru"));
-//echo $request;
-?>
+endScript();
