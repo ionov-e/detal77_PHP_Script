@@ -5,7 +5,7 @@
 //$userData = new UserData;
 set_time_limit(300);
 
-const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 1;
+const DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS = 2;
 
 const URL = 'https://detal77.ru/';
 const LOGIN_INFO_SUFFIX = "&safe_users=1&user_enter=1";
@@ -13,23 +13,27 @@ const LOGIN_INFO = "login=" . LOGIN . "&password=" . PASSWORD . LOGIN_INFO_SUFFI
 const CON_TYPE_APP = "Content-Type: application/x-www-form-urlencoded";
 const CON_TYPE_UTF = "Content-Type: text/plain;charset=UTF-8";
 const LOG_FOLDER_ROOT = "log";
-const NO_PREVIOUS_ID_LIST_MESSAGE = 'No previous ID list';  //todo array with one element (multiple instances here 0 => ...)
-const ERROR_PRODUCT_CRAWLING_EMPTY = 'Search result is zero';
-const ERROR_WITH_CAT_IDS_CSV = 'No CSV File';
+const CASE_NO_PREVIOUS_ID_LIST_MESSAGE = [0 => 'No previous ID list'];
+const CASE_ERROR_PRODUCT_CRAWLING_EMPTY = [0 => 'Search result is zero'];
+const CASE_ERROR_WITH_CAT_IDS_CSV = [0 => 'No CSV File'];
 const CAT_IDS_USED_ADDRESS = CAT_IDS_FOLDER . DIRECTORY_SEPARATOR . CAT_IDS_USED_NAME . '.csv';
+
+const TG_BOT_TOKEN = "1913243361:AAEqtm_wDoBadgmdYyUPsDB4XPtDyy1CAaE";
+const TG_GROUP_ID_ERRORS = -533924184;
+const TG_GROUP_ID_ORDERS = -534082999;
+const TG_GROUP_ID_LOG = -428359620;
+const TG_GROUP_ID_ORDERS_CLIENT = -524392291;
+
+$tgMsg = ''; //
 
 $logFolderMonth = generateLogFolderMonth();
 $cookiePhpsessid = 'Cookie: PHPSESSID=' . generateRandomString();
+
 
 //------------
 //-------  Functions
 //------------
 
-function generateLogFolderMonth($daysAgo = 0): string
-{
-    $time = new DateTime ();
-    return LOG_FOLDER_ROOT . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("Y") . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("m");
-}
 
 function generateRandomString($length = 26): string
 { //Not mine. Function for generating random SessionID. Looks like: 'rnlarqb3bji09g322fam8ydr3k'
@@ -40,6 +44,15 @@ function generateRandomString($length = 26): string
         $randomString .= $characters[rand(0, $charactersLength - 1)];
     }
     return $randomString;
+}
+
+function endScript()
+{
+    global $start, $tgMsg;
+    $end = (new DateTime())->diff($start)->format("%h:%i:%s");
+    sendTelegram(TG_GROUP_ID_LOG, $tgMsg . "->Runtime: $end");
+    logDef("Program Runtime: " . $end);
+    logDef('-------------END-----------------');
 }
 
 
@@ -63,26 +76,18 @@ function logEnd($logMsg) // This is for continuing previous logging function {..
 function logError($logMsg) // This is for errors (maybe for smth else to be implemented)
 {
     logBeg('!!! ERROR !!! : ' . $logMsg . PHP_EOL);
-}
-
-function logWrite($logMsg)
-{
-    global $logFolderMonth;
-    $logFileAddress = $logFolderMonth . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
-    checkLogFolder();
-    file_put_contents($logFileAddress, $logMsg, FILE_APPEND);
-}
-
-function endScript()
-{
-    global $start;
-    logDef("Program Runtime: " . (new DateTime())->diff($start)->format("%h:%i:%s"));
-    logDef('-------------END-----------------');
+    sendTelegram(TG_GROUP_ID_ERRORS,$logMsg . " - Account: " . LOGIN);
 }
 
 //-------  File Functions
 
-function checkLogFolder(): void
+function generateLogFolderMonth($daysAgo = 0): string
+{
+    $time = new DateTime ();
+    return LOG_FOLDER_ROOT . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("Y") . DIRECTORY_SEPARATOR . $time->modify("-$daysAgo days")->format("m");
+}
+
+function checkLogFolders(): void//todo should be only once
 { // creates folders if there are none
     global $logFolderMonth;
     if (!is_dir(LOG_FOLDER_ROOT)) {
@@ -109,40 +114,62 @@ function checkCsvCatFile(): bool
 
 function writeToIdList($idList): void
 {
+    global $tgMsg;
     logBeg('Writing new IDs (from crawling) to file:');
     $idListFileAddress = generateIdListFileAddress();
     file_put_contents($idListFileAddress, json_encode($idList));
     logEnd('Done - file product count now is ' . count($idList));
+    $tgMsg .= '->ID List overwritten';
 
+}
+
+function sendTelegram ($tgIDRecipient, $tgMessage)
+{
+    require_once("vendor/autoload.php");
+    $bot = new \TelegramBot\Api\Client(TG_BOT_TOKEN);
+    $bot->sendMessage($tgIDRecipient, $tgMessage);
+    logDef("Sent telegram to $tgIDRecipient. Message: '$tgMessage'");
 }
 
 function generateIdListFileAddress($daysAgo = 0): string
 {
-    checkLogFolder();
+    checkLogFolders();
     $time = new DateTime ();
-    $newLogFolderMonth = generateLogFolderMonth($daysAgo); // It can be different month
+    $newLogFolderMonth = generateLogFolderMonth($daysAgo); // It can be a different month
     $selectedDay = $time->modify("-$daysAgo days")->format("Y-m-d");
     return $newLogFolderMonth . DIRECTORY_SEPARATOR . $selectedDay . '_' . CAT_IDS_USED_NAME . '.txt';
 }
 
-function generateFileAddress($name): string
+function logWrite($logMsg)
+{
+    global $logFolderMonth;
+    $logFileAddress = $logFolderMonth . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
+    checkLogFolders();
+    file_put_contents($logFileAddress, $logMsg, FILE_APPEND);
+}
+
+/*
+function generateFileAddress($name): string //todo combine above two functions
 {
     global $logFolderMonth;
     checkLogFolder();
     return $logFolderMonth . DIRECTORY_SEPARATOR . $name;
-}
+}*/
 
-//-------  curl function
+//-------  curl functions
 
-function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//todo $isPost to default
+function universalCurl($urlPage, $headerArray = [], $isPost = false, $postfieldString = '')
 {
+    global $cookiePhpsessid;
     $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => false,  //don't return headers
         CURLOPT_AUTOREFERER => true,  //set referrer on redirect
         CURLOPT_CONNECTTIMEOUT => 180,  //timeout on connect
         CURLOPT_TIMEOUT => 180,  //timeout on response
-        CURLOPT_MAXREDIRS => 10, CURLOPT_HTTPHEADER => $headerArray,//        CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0", //Not needed at all
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_HTTPHEADER => array_merge([$cookiePhpsessid] , $headerArray),
+        //CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0", //Not needed at all
     ];
-    if ($isPost) {  //somehow adding to an array 2 elements wasn't an option, since keys for some reason were not as numbers, not like 'CURLOPT_HEADER'
+    if ($isPost) {
         $options [CURLOPT_POST] = 1;
         $options [CURLOPT_CUSTOMREQUEST] = "POST";
         $options [CURLOPT_POSTFIELDS] = $postfieldString;
@@ -156,7 +183,7 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
             case 200:  // OK
                 break;
             case 302:  // Redirects everytime on order page only // OK
-                //                logEnd("Got redirected (302 HTTP CODE) from url: '$urlPage'");
+                //logEnd("Got redirected (302 HTTP CODE) from url: '$urlPage'");
                 break;
             default:
                 logError("Unexpected HTTP code from url: '$urlPage' ===> " . $http_code);
@@ -168,12 +195,12 @@ function universalCurl($urlPage, $isPost, $headerArray, $postfieldString = '')//
     return $result;
 }
 
-
-function loginCurl(): string
+function login(): string
 {
-    global $cookiePhpsessid; //todo universalCurl can be rewritten, not to pass $cookiePhpsessid everytime to the array
+    global $tgMsg;
     logDef("Attempting to log in. Account: " . LOGIN);
-    return universalCurl("order/", true, [CON_TYPE_APP, $cookiePhpsessid], LOGIN_INFO);
+    $tgMsg .= 'User: ' . LOGIN . '->';
+    return universalCurl("order/", [CON_TYPE_APP], true,LOGIN_INFO);
 }
 
 /**
@@ -181,19 +208,21 @@ function loginCurl(): string
  * @description checks through curl
  */
 
-function checkLoginCurl(): bool
+function isLoginSuccessful(): bool
 {
-    global $cookiePhpsessid;
-    $result = universalCurl("users/", false, [$cookiePhpsessid]);
-
+    global $tgMsg;
+    $result = universalCurl("users/");
+    pauseABit();
     if (str_contains($result, 'rosette.gif'))//Made same function for php version < 8
     {
         logBeg("Logged in some account");
         if (str_contains($result, LOGIN)) {
             logEnd("(Good) Found login name on user page (" . LOGIN . ")");
+            $tgMsg .= "Logged";
             return true;
         } else {
             logError("Did not found word" . LOGIN . "on user page");
+            $tgMsg = "Error: " . $tgMsg . "Failed to log in";
             return false;
         }
     } else {
@@ -202,50 +231,52 @@ function checkLoginCurl(): bool
     }
 }
 
-function clearCartCurl(): void   // clear cart
+function clearCart(): void   // clears cart
 {
-    global $cookiePhpsessid;
-    universalCurl("order/?cart=clean", false, [$cookiePhpsessid]);
+    universalCurl("order/?cart=clean");
 }
 
-function addToCartCurl($prodID): string // returns number of products in cart (as string)
+function addToCartNewProduct($prodID): string // returns number of products in cart (as string)
 {
-    global $cookiePhpsessid;
     $postfields = "xid=" . $prodID . "&num=1&xxid=0&addname=&same=0&test=303";
-    $result = universalCurl("phpshop/ajax/cartload.php", true, [CON_TYPE_UTF, $cookiePhpsessid], $postfields);
-    $result = substr($result, strpos($result, "num': '") + 7);
-    //todo check if string is an int::: PHP Warning: A non-numeric value encountered
-    return strstr($result, "','sum", true);
+    $html = universalCurl("phpshop/ajax/cartload.php", [CON_TYPE_UTF], true, $postfields);
+    return getNumberOfProductsFromCartHtml($html);
 }
 
-function checkCartCount(): string // returns number of products in cart (as string)
+function getCartCount(): string // returns number of products in cart (as string)
 {
-    global $cookiePhpsessid;
-    $result = universalCurl("phpshop/ajax/cartload.php", false, [CON_TYPE_UTF, $cookiePhpsessid]);
-    $result = substr($result, strpos($result, "num': '") + 7);
-    /** @noinspection PhpUnnecessaryLocalVariableInspection */
+    $html = universalCurl("phpshop/ajax/cartload.php", [CON_TYPE_UTF]);
+    return getNumberOfProductsFromCartHtml($html);
+}
+
+function getNumberOfProductsFromCartHtml ($originalResult) {
+    $result = substr($originalResult, strpos($originalResult, "num': '") + 7);
     $result = strstr($result, "','sum", true);
+    if (!is_numeric($result)) {
+        logError("While adding to cart got unexpected response from phpshop/ajax/cartload.php :");
+        logEnd($originalResult);
+        endScript();
+    }
     return $result;
 }
 
-function getCartPageCurl() //returns cart page html
+function checkout() // returns done/ html-page
 {
-    global $cookiePhpsessid;
-    return universalCurl("order/", false, [$cookiePhpsessid]);
-}
-
-function checkoutCurl() // returns number of products in cart (as string)
-{
-    global $cookiePhpsessid;
+    global $tgMsg;
     pauseABit();
-    $postfields = 'ouid=' . getCartId() . '&dostavka_metod=1&mail=' . encodeToUrl(USER_MAIL) . '&name_person=' . encodeToUrl(USER_NAME) . '&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=' . encodeToUrl(USER_PHONE) . '&dos_ot=&dos_do=&adr_name=' . encodeToUrl(USER_ADDRESS) . '&order_metod=1&send_to_order=ok&d=1&nav=done';
-    $result = universalCurl("done/", true, [CON_TYPE_APP, $cookiePhpsessid], $postfields);
+    $cartId = getCartId();
+    $postfields = 'ouid=' . $cartId . '&dostavka_metod=1&mail=' . encodeToUrl(USER_MAIL) . '&name_person=' . encodeToUrl(USER_NAME) . '&org_name=&org_inn=&org_kpp=&tel_code=&tel_name=' . encodeToUrl(USER_PHONE) . '&dos_ot=&dos_do=&adr_name=' . encodeToUrl(USER_ADDRESS) . '&order_metod=1&send_to_order=ok&d=1&nav=done';
+    $result = universalCurl("done/", [CON_TYPE_APP], true, $postfields);
     $result = iconv('CP1251', 'UTF-8', $result);
     logDef('Checkout seems to be complete');
     //Little final search:
     if (str_contains($result, 'Спасибо за Ваш заказ'))//Made same function for php version < 8
     {
         logDef("'Thank you for your order' is found");
+        $tgMsg .= "->Success. Cart ID: " . $cartId;
+        $tgMsgToOrderGroup = "Новый заказ: $cartId. Аккаунт: " . LOGIN . '. Почта: ' . USER_MAIL;
+        sendTelegram(TG_GROUP_ID_ORDERS_CLIENT, $tgMsgToOrderGroup);
+        sendTelegram(TG_GROUP_ID_ORDERS, $tgMsgToOrderGroup);
     } else {
         logError("'Thank you for your order' is not found");
     }
@@ -271,9 +302,8 @@ function encodeToUrl($string): string
 
 function getProdIdsFromCat($idCategory)
 { //returns only array of prod IDs from Category page  //todo implement php_query
-    global $cookiePhpsessid;
     $url = "shop/CID_" . $idCategory . "_ALL.html";
-    $catData = universalCurl($url, false, [$cookiePhpsessid]);
+    $catData = universalCurl($url);
     //    $catData = iconv('CP1251', 'UTF-8', $catData); // no reason to encode since we're getting IDs
     $catData = strstr($catData, '<table cellpadding="0" cellspacing="0" border="0">');
     $catData = strstr($catData, '<div class="page_nava', true);
@@ -298,13 +328,14 @@ function getIdsOfAllCurProducts(): array
 
 function getCartId()    //todo implement php_querry
 {
-    $htmlCartPageUnedited = getCartPageCurl(); // I wanna keep unedited in case of failing of getting the id
+    $htmlCartPageUnedited = universalCurl("order/"); // Returns Cart Page Html. I wanna keep unedited in case of failing of getting the id
     //    $htmlCartPageUnedited = iconv('CP1251', 'UTF-8', $htmlCartPageUnedited); // no reason to encode since we're getting cart ID
     $htmlCartPage = strstr($htmlCartPageUnedited, '<input type="text" name=ouid');
     $htmlCartPage = strstr($htmlCartPage, '"  readonly="1">', true);
     $htmlCartPage = substr($htmlCartPage, strpos($htmlCartPage, 'value="') + 7);
     if (strlen($htmlCartPage) > 20 || strlen($htmlCartPage) < 6) {
-        logError('Func (getCartId): Failed to get ID from cart page. Here is the unedited page-html:' . $htmlCartPageUnedited);
+        logError('Func (getCartId): Failed to get ID from cart page.');
+        logEnd("Here is the unedited page-html:\n" . $htmlCartPageUnedited);
         return '24003-' . rand(100, 989); // returns kinda random id in case of failing this function, but it would still work with any id, even no id at all
     }
     logDef('Func: Cart ID search seams to be successful. We have got ID: ' . $htmlCartPage);
@@ -314,13 +345,15 @@ function getCartId()    //todo implement php_querry
 //returns new product ids in array (difference between scraped prod ids vs previous scraping)
 function findNewProducts(): array
 {
+    global $tgMsg;
     if (!checkCsvCatFile()) {
-        return [0 => ERROR_WITH_CAT_IDS_CSV]; // returns this value to stop script
+        return CASE_ERROR_WITH_CAT_IDS_CSV; // returns this value to stop script
     }
     $currentProductIds = getIdsOfAllCurProducts();
     if (count($currentProductIds) == 0) { //check if there's some error, and no new products is found //todo Maybe check for not equal 0, but if for example less than half of previous list
         logError('The crawling found no products in all selected categories');
-        return [0 => ERROR_PRODUCT_CRAWLING_EMPTY];
+        $tgMsg = "Error: ". $tgMsg . "->No new products";
+        return CASE_ERROR_PRODUCT_CRAWLING_EMPTY;
     } else {
         $fileProdIdAddress = generateIdListFileAddress();
         if (!file_exists($fileProdIdAddress)) {
@@ -332,16 +365,15 @@ function findNewProducts(): array
                 }
                 if ($i === DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS) {
                     logError("Previous product id-list file is not found (checked " . DAYS_FROM_LAST_CHECK_FOR_NEW_PRODUCTS . " days). Last check address ($fileProdIdAddress) Gonna end this session after writing new IDs");
+                    $tgMsg = "Error: ". $tgMsg . "->Prev. prod. id-list not found";
                     writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
-                    return [0 => NO_PREVIOUS_ID_LIST_MESSAGE]; // returns this value to stop script
+                    return CASE_NO_PREVIOUS_ID_LIST_MESSAGE; // returns this value to stop script
                 }
             }
         }
-
         $previousProductIds = json_decode(file_get_contents($fileProdIdAddress), true);
-
         logDef("$fileProdIdAddress : Previous product count is " . count($previousProductIds));
-
+        $tgMsg .= '->Prev count is ' . count($previousProductIds);
         writeToIdList($currentProductIds); //writes (or overwrites) ids of all current products in file
         return array_diff($currentProductIds, $previousProductIds);
     }
@@ -349,31 +381,33 @@ function findNewProducts(): array
 
 function addToCartNewProducts()
 {
+    global $tgMsg;
     $newProducts = findNewProducts(); //returns array with new prods (difference between cur vs last ids)
     $countOfNewProducts = count($newProducts);
     if ($countOfNewProducts == 1) {
-        if ($newProducts[0] == NO_PREVIOUS_ID_LIST_MESSAGE) { // If there are no previous ID lists (last few days) to compare new ID list view
-            return false;
-        } elseif ($newProducts[0] == ERROR_PRODUCT_CRAWLING_EMPTY) { // If crawling ends with 0 products
-            return false;
-        } elseif ($newProducts[0] == ERROR_WITH_CAT_IDS_CSV) { // If there is no previous csv with cat ID list (or folder csv)
-            return false;
+        switch ($newProducts) {
+            case CASE_ERROR_PRODUCT_CRAWLING_EMPTY:
+            case CASE_ERROR_WITH_CAT_IDS_CSV:
+            case CASE_NO_PREVIOUS_ID_LIST_MESSAGE:
+                return false;
         }
     }
     logDef("Count of new products found: $countOfNewProducts");
     if ($countOfNewProducts == 0) {
         logDef('No new products found. Gonna end this session now');
+        $tgMsg .= '->No new prods';
         return false;
     } else if ($countOfNewProducts > MAX_NEW_PRODUCTS) {
         logError("There were too much of new products. Max limit is " . MAX_NEW_PRODUCTS . ". Gonna end this session now");
         return false;
     } else {
         logDef('-> -> -> -> -> -> Starting adding to cart <- <- <- <- <- <-');
+        $tgMsg .= "->Buying $countOfNewProducts prods";
         $cartCountOld = 0;
         foreach ($newProducts as $newProduct) {
             pauseABit();
             logEnd("Adding to cart product id: $newProduct");
-            $cartCountNew = addToCartCurl($newProduct);
+            $cartCountNew = addToCartNewProduct($newProduct);// returns number of products in cart (as string), with is_numeric check
             if ($cartCountNew == $cartCountOld + 1) {
                 logEnd("Success. Cart count now is $cartCountNew");
             } else {
@@ -387,10 +421,10 @@ function addToCartNewProducts()
 
 function makeSureCartIsEmptyOrExit()
 {
-    if (checkCartCount() != 0) {
+    if (getCartCount() != 0) {
         logDef("Minor thing: for some reason cart is not empty after login. Attempting to clear cart");
-        clearCartCurl();
-        if (checkCartCount() != 0) {
+        clearCart();
+        if (getCartCount() != 0) {
             logError("Cart is not empty after login and even after trying to clear it out");
             return false;
         } else {
@@ -446,14 +480,14 @@ if ($isError) {
 }
 }*/
 
+
 $start = new DateTime();
 logDef('Used ' . $cookiePhpsessid);
-loginCurl();
-if (checkLoginCurl()) { //if false -> stop script
-    pauseABit();
+login();
+if (isLoginSuccessful()) { //if false -> stop script
     if (makeSureCartIsEmptyOrExit()) {
         if (addToCartNewProducts()) {
-            checkoutCurl();
+            checkout();
         }
     }
 }
